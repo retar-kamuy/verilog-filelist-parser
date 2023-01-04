@@ -1,0 +1,38 @@
+prefix = - | +
+file = file.v
+dir = src
+env = ${VAR} | $VAR | $(VAR)
+option = D | define | F | f | I | incdir | libext | v | y
+
+plus = '+'
+assignment = '='
+var = HOME
+
+expr = file | prefix,
+
+prefix = ('-', option) | ('+', plus_option)
+option =  ('D', var)
+        | ('define', plus_var)
+        | ('F', space)
+        | ('f', space)
+        | ('I', dir)
+        | ('incdir', plus_dir)
+        | ('libext', plus_ext)
+        | ('v', space)
+        | ('y', space)
+plus_option =  ('D', var)
+        | ('F', space)
+        | ('f', space)
+        | ('I', dir)
+        | ('v', space)
+        | ('y', space)
+plus_var = ('+', var)
+plus_dir = ('+', dir)
+plus_ext = ('+', ext)
+space = (' ', file) | (' ', dir)
+var = '文字列' | ('=', plus_var)
+assign = ('=', value)
+file = '文字列'
+dir = '文字列'
+value = '文字列'
+ext = ('.文字列') | ('.文字列', plus_ext)
