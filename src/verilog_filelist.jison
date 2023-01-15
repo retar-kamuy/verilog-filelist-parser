@@ -3,7 +3,7 @@
 %%
 [\s\t]+             /* skipping whitespace */
 [^-+=\s$(){}][^+=\s$(){}]+    return 'STRING';
-("-f")|("-F")           return 'F'; /* Parse arguments from a file */
+("-f")|("-F")           return 'FILE'; /* Parse arguments from a file */
 ("-I")|("--include-directory")  return 'INCLUDE_DIRECTORY'; /* Directory to search for includes */
 "+incdir"             return 'INCDIR'; /* Directory to search for includes */
 ("-D")|("--define-macro")     return 'MACRO'; /* Set preprocessor define */
@@ -58,17 +58,9 @@ optional
     {
       $$ = $1;
     }
-  | F factor
+  | file_argument
     {
-      $$ = {
-        tag: 'optionalArgument',
-        line: _$[_$.length - 2].first_line,
-        endLine: _$[_$.length - 2].last_line,
-        column: _$[_$.length - 2].first_column,
-        endColumn: _$[_$.length - 2].last_column,
-        text: $1,
-        children: [$2],
-      };
+      $$ = $1;
     }
   | INCLUDE_DIRECTORY factor
     {
@@ -107,11 +99,11 @@ add_factor
     }
   ;
 
-macro_argument
-  : MACRO macro_declaration
+file_argument
+  : FILE identifier
     {
       $$ = {
-        tag: 'macro',
+        tag: 'argumentDeclaration',
         children: [
           {
             tag: 'argumentType',
@@ -120,15 +112,39 @@ macro_argument
             column: _$[_$.length - 2].first_column,
             endColumn: _$[_$.length - 2].last_column,
             text: $1,
-          },
-          $2,
+          }, {
+            tag: 'fileDeclaration',
+            children: [$2],
+          }
+        ];
+      }
+    }
+  ;
+
+macro_argument
+  : MACRO macro_declaration
+    {
+      $$ = {
+        tag: 'argumentDeclaration',
+        children: [
+          {
+            tag: 'argumentType',
+            line: _$[_$.length - 2].first_line,
+            endLine: _$[_$.length - 2].last_line,
+            column: _$[_$.length - 2].first_column,
+            endColumn: _$[_$.length - 2].last_column,
+            text: $1,
+          }, {
+            tag: 'macroDeclaration',
+            children: [$2],
+          }
         ],
       };
     }
   | MACRO_LIST '+' macro_declaration_list
     {
       $$ = {
-        tag: 'macroList',
+        tag: 'argumentDeclaration',
         children: [
           {
             tag: 'argumentType',
