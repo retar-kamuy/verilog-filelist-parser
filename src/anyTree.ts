@@ -4,6 +4,28 @@ export class Node {
   ) {
     this.parent = parent;
   }
+}
+
+export class BranchNode extends Node {
+  constructor(
+    public tag: string,
+    public line: number,
+    public endLine: number,
+    public column: number,
+    public endColumn: number,
+    public text: string,
+    public children: (BranchNode | LeafNode)[] | undefined,
+    parent?: RootNode | BranchNode | undefined,
+  ) {
+    super(parent);
+    this.tag = tag;
+    this.line = line;
+    this.endLine = endLine;
+    this.column = column;
+    this.endColumn = endColumn;
+    this.text = text;
+    this.children = children;
+  }
 
   iterFind(targetObj: Node | Node[], filter: string, initialValue?: Node[]): Node[] {
     const initValues = initialValue !== undefined ? initialValue : [];
@@ -30,34 +52,14 @@ export class Node {
     return foundObjs;
   }
 
-  /* iterFindAll(filters: { [key: string]: string[] }): Node[] {
+  iterFindAll(filters: { [key: string]: string[] }): Node[] {
     let foundObjs: Node[] = [];
-    // filters.tag.forEach((filter) => {
-    //   foundObjs = foundObjs.concat(this.iterFind(this.children, filter));
-    // });
+    filters.tag.forEach((filter) => {
+      if (this.children !== undefined) {
+        foundObjs = foundObjs.concat(this.iterFind(this.children, filter));
+      }
+    });
     return foundObjs;
-  } */
-}
-
-export class BranchNode extends Node {
-  constructor(
-    public tag: string,
-    public line: number,
-    public endLine: number,
-    public column: number,
-    public endColumn: number,
-    public text: string,
-    public children: (BranchNode | LeafNode)[] | undefined,
-    parent?: RootNode | BranchNode | undefined,
-  ) {
-    super(parent);
-    this.tag = tag;
-    this.line = line;
-    this.endLine = endLine;
-    this.column = column;
-    this.endColumn = endColumn;
-    this.text = text;
-    this.children = children;
   }
 }
 
@@ -103,12 +105,12 @@ function transform(tree: BranchNode | LeafNode): BranchNode | LeafNode {
         children.push(transform(child));
       } else {
         children.push(new LeafNode(
-          tree.tag,
-          tree.line,
-          tree.endLine,
-          tree.column,
-          tree.endColumn,
-          tree.text,
+          child.tag,
+          child.line,
+          child.endLine,
+          child.column,
+          child.endColumn,
+          child.text,
         ));
       }
     });
@@ -150,12 +152,12 @@ export function transformTree(tree: RootNode): RootNode {
       children.push(transform(child));
     } else {
       children.push(new LeafNode(
-        tree.tag,
-        tree.line,
-        tree.endLine,
-        tree.column,
-        tree.endColumn,
-        tree.text,
+        child.tag,
+        child.line,
+        child.endLine,
+        child.column,
+        child.endColumn,
+        child.text,
       ));
     }
   });

@@ -1,6 +1,13 @@
-import { transformTree } from './anyTree';
+import * as ParserAndLexer from './verilog_filelist';
+import { RootNode, transformTree } from './anyTree';
 
-const define = transformTree(undefined);
+const define: RootNode[] = new ParserAndLexer.TsCalcParser().parse('-D macro -D macro=value +define+macro1+macro2');
+console.log('-D macro'.trim(), '=', define);
+define.forEach((tree) => {
+  const converted = transformTree(tree);
+  console.dir(converted);
+  console.log('-f run.f'.trim(), '=', converted.iterFindAll({ tag: ['argumentDeclaration'] }));
+});
 
 // const define = new ParserAndLexer.TsCalcParser().parse('-D macro -D macro=value +define+macro1+macro2');
 // console.log('-D macro'.trim(), '=', define);
