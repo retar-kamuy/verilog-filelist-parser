@@ -32,7 +32,8 @@ export class BranchNode extends Node {
     let foundObjs: Node[] = initValues;
     if (Array.isArray(targetObj)) {
       const objs = targetObj.reduce((founds, obj) => {
-        const results = this.iterFind(obj, filter, founds);
+        // const results = this.iterFind(obj, filter, founds);
+        const results = this.iterFind(obj, filter);
         return founds.concat(results);
       }, initValues);
       foundObjs = foundObjs.concat(objs);

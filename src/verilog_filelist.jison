@@ -1,19 +1,22 @@
 %lex
 
 %%
-[\s\t]+             /* skipping whitespace */
-[^-+=\s$(){}][^+=\s$(){}]+    return 'STRING';
-("-f")|("-F")           return 'FILE'; /* Parse arguments from a file */
-("-I")|("--include-directory")  return 'INCLUDE_DIRECTORY'; /* Directory to search for includes */
-"+incdir"             return 'INCDIR'; /* Directory to search for includes */
-("-D")|("--define-macro")     return 'MACRO'; /* Set preprocessor define */
-"+define"             return 'MACRO_LIST'; /* Set preprocessor define */
-"$"               return '$';
-[({]              return '(';
-[)}]              return ')';
-"+"               return '+';
-"="               return '=';
-<<EOF>>             return 'EOF';
+[\s\t]+                                                 /* skipping whitespace */
+[^-+=\s$(){}][^+=\s$(){}]+      return 'STRING';
+("-f")|("-F")                   return 'FILE';          /* Parse arguments from a file */
+("-F")                          return 'FILE';          /* Parse arguments from a file */
+("-I")|("--include-directory")  return 'INCLUDE';       /* Directory to search for includes */
+"+incdir"                       return 'INCLUDE_LIST';  /* Directory to search for includes */
+("-D")|("--define-macro")       return 'MACRO';         /* Set preprocessor define */
+"+define"                       return 'MACRO_LIST';    /* Set preprocessor define */
+"$"                             return '$';
+"("                             return '(';
+")"                             return ')';
+"{"                             return '{';
+"}"                             return '}';
+"+"                             return '+';
+"="                             return '=';
+<<EOF>>                         return 'EOF';
 
 /lex
 
@@ -28,13 +31,13 @@ expressions
   ;
 
 argument
-  : positional { $$ = [$1]; }
-  | optional { $$ = [$1]; }
-  | positional argument { $$ = [$1].concat($2); }
-  | optional argument { $$ = [$1].concat($2); }
+  : positional_argument { $$ = [$1]; }
+  | optional_argument { $$ = [$1]; }
+  | positional_argument argument { $$ = [$1].concat($2); }
+  | optional_argument argument { $$ = [$1].concat($2); }
   ;
 
-optional
+optional_argument
   : I_DIR
     {
       $$ = {
@@ -54,6 +57,10 @@ optional
         }],
       };
     }
+  | include_argument
+    {
+      $$ = $1;
+    }
   | macro_argument
     {
       $$ = $1;
@@ -62,48 +69,13 @@ optional
     {
       $$ = $1;
     }
-  | INCLUDE_DIRECTORY factor
-    {
-      $$ = {
-        tag: 'optionalArgument',
-        line: _$[_$.length - 2].first_line,
-        endLine: _$[_$.length - 2].last_line,
-        column: _$[_$.length - 2].first_column,
-        endColumn: _$[_$.length - 2].last_column,
-        text: $1,
-        children: [$2],
-      };
-    }
-  | INCDIR '+' add_factor
-    {
-      $$ = {
-        tag: 'optionalArgument',
-        line: _$[_$.length - 3].first_line,
-        endLine: _$[_$.length - 3].last_line,
-        column: _$[_$.length - 3].first_column,
-        endColumn: _$[_$.length - 3].last_column,
-        text: $1,
-        children: $3,
-      };
-    }
   ;
 
-add_factor
-  : factor
-    {
-      $$ = [$1];
-    }
-  | factor '+' add_factor
-    {
-      $$ = [$1, ...$3];
-    }
-  ;
-
-file_argument
-  : FILE identifier
+include_argument
+  : INCLUDE include_declaration
     {
       $$ = {
-        tag: 'argumentDeclaration',
+        tag: 'kArgumentDeclaration',
         children: [
           {
             tag: 'argumentType',
@@ -113,38 +85,16 @@ file_argument
             endColumn: _$[_$.length - 2].last_column,
             text: $1,
           }, {
-            tag: 'fileDeclaration',
-            children: [$2],
-          }
-        ];
-      }
-    }
-  ;
-
-macro_argument
-  : MACRO macro_declaration
-    {
-      $$ = {
-        tag: 'argumentDeclaration',
-        children: [
-          {
-            tag: 'argumentType',
-            line: _$[_$.length - 2].first_line,
-            endLine: _$[_$.length - 2].last_line,
-            column: _$[_$.length - 2].first_column,
-            endColumn: _$[_$.length - 2].last_column,
-            text: $1,
-          }, {
-            tag: 'macroDeclaration',
+            tag: 'kIncludeDeclaration',
             children: [$2],
           }
         ],
-      };
+      }
     }
-  | MACRO_LIST '+' macro_declaration_list
+  | INCLUDE_LIST + include_declaration_list
     {
       $$ = {
-        tag: 'argumentDeclaration',
+        tag: 'kArgumentDeclaration',
         children: [
           {
             tag: 'argumentType',
@@ -154,7 +104,91 @@ macro_argument
             endColumn: _$[_$.length - 3].last_column,
             text: $1,
           }, {
-            tag: 'macroDeclarationList',
+            tag: 'kIncludeDeclarationList',
+            children: [$3],
+          }
+        ],
+      }
+    }
+  ;
+
+include_declaration
+  : identifier
+    {
+      $$ = {
+        tag: 'kIncludeDeclaration',
+        children: [$1],
+      };
+    }
+  ;
+
+include_declaration_list
+  : include_declaration
+    {
+      $$ = [$1];
+    }
+  | include_declaration '+' include_declaration_list
+    {
+      $$ = [$1, ...$3];
+    }
+  ;
+
+file_argument
+  : FILE identifier
+    {
+      $$ = {
+        tag: 'kArgumentDeclaration',
+        children: [
+          {
+            tag: 'argumentType',
+            line: _$[_$.length - 2].first_line,
+            endLine: _$[_$.length - 2].last_line,
+            column: _$[_$.length - 2].first_column,
+            endColumn: _$[_$.length - 2].last_column,
+            text: $1,
+          }, {
+            tag: 'kFileDeclaration',
+            children: [$2],
+          }
+        ],
+      }
+    }
+  ;
+
+macro_argument
+  : MACRO macro_declaration
+    {
+      $$ = {
+        tag: 'kArgumentDeclaration',
+        children: [
+          {
+            tag: 'argumentType',
+            line: _$[_$.length - 2].first_line,
+            endLine: _$[_$.length - 2].last_line,
+            column: _$[_$.length - 2].first_column,
+            endColumn: _$[_$.length - 2].last_column,
+            text: $1,
+          }, {
+            tag: 'kMacroDeclaration',
+            children: [$2],
+          }
+        ],
+      };
+    }
+  | MACRO_LIST '+' macro_declaration_list
+    {
+      $$ = {
+        tag: 'kArgumentDeclaration',
+        children: [
+          {
+            tag: 'argumentType',
+            line: _$[_$.length - 3].first_line,
+            endLine: _$[_$.length - 3].last_line,
+            column: _$[_$.length - 3].first_column,
+            endColumn: _$[_$.length - 3].last_column,
+            text: $1,
+          }, {
+            tag: 'kMacroDeclarationList',
             children: [$3],
           },
         ],
@@ -166,14 +200,14 @@ macro_declaration
   : identifier
     {
       $$ = {
-        tag: 'macroDeclaration',
+        tag: 'kMacroDeclaration',
         children: [$1],
       };
     }
   | identifier '=' identifier
     {
       $$ = {
-        tag: 'macroDeclaration',
+        tag: 'kMacroDeclaration',
         children: [$1, $3],
       };
     }
@@ -190,62 +224,56 @@ macro_declaration_list
     }
   ;
 
-positional
-  : STRING
-    {
-      $$ = {
-        tag: 'positionalArgument',
-        line: _$[_$.length - 1].first_line,
-        endLine: _$[_$.length - 1].last_line,
-        column: _$[_$.length - 1].first_column,
-        endColumn: _$[_$.length - 1].last_column,
-        text: $1,
-      };
-    }
-  | '$' env_var
-    {
-      $$ = $2;
-    }
-  | '$' '(' env_var ')'
-    {
-      $$ = $3;
-    }
-  ;
-
-factor
+positional_argument
   : identifier
     {
       $$ = $1;
     }
-  | '$' env_var
-    {
-      $$ = $2;
-    }
-  | '$' '(' env_var ')'
-    {
-      $$ = $3;
-    }
   ;
 
 identifier
-  : STRING
+  : string_literal
+    {
+      $$ = $1;
+    }
+  | variable identifier
     {
       $$ = {
-        tag: 'stringLiteral',
-        line: _$[_$.length - 1].first_line,
-        endLine: _$[_$.length - 1].last_line,
-        column: _$[_$.length - 1].first_column,
-        endColumn: _$[_$.length - 1].last_column,
-        text: $1,
+        tag: 'kVariableIdentifier',
+        children: [$1, $2],
       };
     }
   ;
 
-env_var
+variable
+  : '$' string_literal
+    {
+      $$ = {
+        tag: 'kVariable',
+        children: [$2],
+      };
+    }
+  | '$' '(' string_literal ')'
+    {
+      $$ = {
+        tag: 'kVariable',
+        children: [$3],
+      };
+    }
+  | '$' '{' string_literal '}'
+    {
+      $$ = {
+        tag: 'kVariable',
+        children: [$3],
+      };
+    }
+  ;
+
+string_literal
   : STRING
     {
       $$ = {
-        tag: 'environmentVariable',
+        tag: 'identifier',
         line: _$[_$.length - 1].first_line,
         endLine: _$[_$.length - 1].last_line,
         column: _$[_$.length - 1].first_column,
