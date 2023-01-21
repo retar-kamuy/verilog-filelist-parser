@@ -6,6 +6,12 @@ export class Node {
   }
 }
 
+function asList(v: string[] | string) {
+  return Array.isArray(v) ? v : [v];
+}
+
+type Filter = { [key: string]: string[] } | { [key: string]: string };
+
 export class BranchNode extends Node {
   constructor(
     public tag: string,
@@ -27,40 +33,40 @@ export class BranchNode extends Node {
     this.children = children;
   }
 
-  iterFind(targetObj: Node | Node[], filter: string, initialValue?: Node[]): Node[] {
-    const initValues = initialValue !== undefined ? initialValue : [];
-    let foundObjs: Node[] = initValues;
-    if (Array.isArray(targetObj)) {
-      const objs = targetObj.reduce((founds, obj) => {
-        // const results = this.iterFind(obj, filter, founds);
-        const results = this.iterFind(obj, filter);
-        return founds.concat(results);
-      }, initValues);
-      foundObjs = foundObjs.concat(objs);
-    } else if (Object.values(targetObj).indexOf(filter) !== -1) {
-      foundObjs.push(targetObj);
+  private iterFind(targetObj: BranchNode[] | BranchNode, filter: string): BranchNode[] {
+    let indexOf: BranchNode[] = [];
+    if (!Array.isArray(targetObj)) {
+      if (Object.values(targetObj).indexOf(filter) !== -1) {
+        indexOf.push(targetObj);
+      }
     } else {
-      const objs = Object.values(targetObj).reduce((founds: Node[], targetValue: Node | string) => {
+      const values = Object.values(targetObj);
+      const objs = values.reduce((founds: BranchNode[], targetValue: string | BranchNode) => {
         if (typeof targetValue === 'object') {
           if (targetValue !== null) {
-            return this.iterFind(targetValue, filter, founds);
+            return this.iterFind(targetValue, filter);
           }
         }
         return founds;
-      }, initValues);
-      foundObjs = foundObjs.concat(objs);
+      }, []);
+      indexOf = indexOf.concat(objs);
     }
-    return foundObjs;
+    return indexOf;
   }
 
-  iterFindAll(filters: { [key: string]: string[] }): Node[] {
-    let foundObjs: Node[] = [];
-    filters.tag.forEach((filter) => {
+  public iterFindAll(filter: Filter): BranchNode[] {
+    let indexOf: BranchNode[] = [];
+    asList(filter.tag).forEach((f) => {
       if (this.children !== undefined) {
-        foundObjs = foundObjs.concat(this.iterFind(this.children, filter));
+        indexOf = indexOf.concat(this.iterFind(this.children as BranchNode[], f));
       }
     });
-    return foundObjs;
+    return indexOf;
+  }
+
+  public find(filter: Filter): BranchNode {
+    const nodes = this.iterFindAll(filter);
+    return nodes[0];
   }
 }
 

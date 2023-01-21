@@ -22,12 +22,18 @@
 
 /* operator associations and precedence */
 
-%start expressions
+%start arguments
 
 %% /* language grammar */
 
-expressions
-  : argument EOF { return $1; }
+arguments
+  : argument EOF
+    {
+      return {
+        tag: 'kArgumentList',
+        children: $1;
+      }
+    }
   ;
 
 argument
