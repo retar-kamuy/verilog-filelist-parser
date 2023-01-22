@@ -12,8 +12,6 @@ all: run
 install:
 	npm install @ts-jison/parser-generator
 
-
-
 $(SECDIR)/$(PARSER).ts: $(SRC)
 	$(JISON) -t typescript -n TsCalc -n TsCalc -o $@ $<
 

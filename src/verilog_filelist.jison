@@ -17,6 +17,7 @@
 "+"                             return '+';
 "="                             return '=';
 <<EOF>>                         return 'EOF';
+-[^+=\s$(){}]+                  return 'UNDEFINED';
 
 /lex
 
@@ -31,39 +32,22 @@ arguments
     {
       return {
         tag: 'kArgumentList',
-        children: $1;
-      }
+        children: $1,
+      };
     }
   ;
 
 argument
   : positional_argument { $$ = [$1]; }
   | optional_argument { $$ = [$1]; }
+  | undefined_argument { $$ = [$1]; }
   | positional_argument argument { $$ = [$1].concat($2); }
   | optional_argument argument { $$ = [$1].concat($2); }
+  | undefined_argument argument { $$ = [$1].concat($2); }
   ;
 
 optional_argument
-  : I_DIR
-    {
-      $$ = {
-        tag: 'optionalArgument',
-        line: _$[_$.length - 1].first_line,
-        endLine: _$[_$.length - 1].last_line,
-        column: _$[_$.length - 1].first_column,
-        endColumn: _$[_$.length - 1].first_column + 2,
-        text: $1.substr(0, 2),
-        children: [{
-          tag: 'argumentValue',
-          line: _$[_$.length - 1].first_line,
-          endLine: _$[_$.length - 1].last_line,
-          column: _$[_$.length - 1].first_column + 2,
-          endColumn: _$[_$.length - 1].last_column,
-          text: $1.substr(2),
-        }],
-      };
-    }
-  | include_argument
+  : include_argument
     {
       $$ = $1;
     }
@@ -104,14 +88,14 @@ include_argument
         children: [
           {
             tag: 'argumentType',
-            line: _$[_$.length - 3].first_line,
-            endLine: _$[_$.length - 3].last_line,
-            column: _$[_$.length - 3].first_column,
-            endColumn: _$[_$.length - 3].last_column,
+            line: _$[_$.length - 2].first_line,
+            endLine: _$[_$.length - 2].last_line,
+            column: _$[_$.length - 2].first_column,
+            endColumn: _$[_$.length - 2].last_column,
             text: $1,
           }, {
             tag: 'kIncludeDeclarationList',
-            children: [$3],
+            children: [$2],
           }
         ],
       }
@@ -234,6 +218,30 @@ positional_argument
   : identifier
     {
       $$ = $1;
+    }
+  ;
+
+undefined_argument
+  : UNDEFINED
+    {
+      $$ = {
+        tag: 'kUndefinedArgument',
+        children: [
+          {
+            tag: 'kArgumentDeclaration',
+            children: [
+              {
+                tag: 'argumentType',
+                line: _$[_$.length - 1].first_line,
+                endLine: _$[_$.length - 1].last_line,
+                column: _$[_$.length - 1].first_column,
+                endColumn: _$[_$.length - 1].last_column,
+                text: $1,
+              },
+            ],
+          },
+        ],
+      };
     }
   ;
 
