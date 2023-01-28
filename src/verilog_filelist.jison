@@ -38,26 +38,22 @@ arguments
   ;
 
 argument
-  : positional_argument { $$ = [$1]; }
-  | optional_argument { $$ = [$1]; }
-  | undefined_argument { $$ = [$1]; }
+  : positional_argument | optional_argument | undefined_argument
+    {
+      $$ = [$1];
+    }
   | positional_argument argument { $$ = [$1].concat($2); }
   | optional_argument argument { $$ = [$1].concat($2); }
   | undefined_argument argument { $$ = [$1].concat($2); }
   ;
 
 optional_argument
-  : include_argument
+  : include_argument | macro_argument | file_argument
     {
-      $$ = $1;
-    }
-  | macro_argument
-    {
-      $$ = $1;
-    }
-  | file_argument
-    {
-      $$ = $1;
+      $$ = {
+        tag: 'kOptionalArgument',
+        children: [$1],
+      };
     }
   ;
 
@@ -81,21 +77,21 @@ include_argument
         ],
       }
     }
-  | INCLUDE_LIST + include_declaration_list
+  | INCLUDE_LIST '+' include_declaration_list
     {
       $$ = {
         tag: 'kArgumentDeclaration',
         children: [
           {
             tag: 'argumentType',
-            line: _$[_$.length - 2].first_line,
-            endLine: _$[_$.length - 2].last_line,
-            column: _$[_$.length - 2].first_column,
-            endColumn: _$[_$.length - 2].last_column,
+            line: _$[_$.length - 3].first_line,
+            endLine: _$[_$.length - 3].last_line,
+            column: _$[_$.length - 3].first_column,
+            endColumn: _$[_$.length - 3].last_column,
             text: $1,
           }, {
             tag: 'kIncludeDeclarationList',
-            children: [$2],
+            children: [$3],
           }
         ],
       }
@@ -217,7 +213,10 @@ macro_declaration_list
 positional_argument
   : identifier
     {
-      $$ = $1;
+      $$ = {
+        tag: 'kPositionalArgument',
+        children: [$1],
+      };
     }
   ;
 
@@ -250,35 +249,61 @@ identifier
     {
       $$ = $1;
     }
-  | variable identifier
+  | preprocessor_identifier identifierItem
     {
       $$ = {
-        tag: 'kVariableIdentifier',
+        tag: 'preprocessorIdentifier',
         children: [$1, $2],
+        text: $1.children[0].text + $2.text,
       };
     }
   ;
 
-variable
-  : '$' string_literal
+identifierItem
+  : STRING
     {
       $$ = {
-        tag: 'kVariable',
+        tag: 'identifierItem',
+        line: _$[_$.length - 1].first_line,
+        endLine: _$[_$.length - 1].last_line,
+        column: _$[_$.length - 1].first_column,
+        endColumn: _$[_$.length - 1].last_column,
+        text: $1,
+      };
+    }
+  | preprocessor_identifier identifierItem
+    {
+      $$ = {
+        tag: 'preprocessorIdentifier',
+        children: [$1, $2],
+        text: $1.children[0].text + '/' + $2.text,
+      };
+    }
+  ;
+
+preprocessor_identifier
+  : '$' string_variable
+    {
+      $$ = {
+        tag: 'kPreprocessorIdentifierItem',
         children: [$2],
+        text: $2.text,
       };
     }
-  | '$' '(' string_literal ')'
+  | '$' '(' string_variable ')'
     {
       $$ = {
-        tag: 'kVariable',
+        tag: 'kPreprocessorIdentifierItem',
         children: [$3],
+        text: $3.text,
       };
     }
-  | '$' '{' string_literal '}'
+  | '$' '{' string_variable '}'
     {
       $$ = {
-        tag: 'kVariable',
+        tag: 'kPreprocessorIdentifierItem',
         children: [$3],
+        text: $3.text,
       };
     }
   ;
@@ -288,6 +313,20 @@ string_literal
     {
       $$ = {
         tag: 'identifier',
+        line: _$[_$.length - 1].first_line,
+        endLine: _$[_$.length - 1].last_line,
+        column: _$[_$.length - 1].first_column,
+        endColumn: _$[_$.length - 1].last_column,
+        text: $1,
+      };
+    }
+  ;
+
+string_variable
+  : STRING
+    {
+      $$ = {
+        tag: 'variableIdentifier',
         line: _$[_$.length - 1].first_line,
         endLine: _$[_$.length - 1].last_line,
         column: _$[_$.length - 1].first_column,

@@ -20,8 +20,8 @@ export class BranchNode extends Node {
     public column: number,
     public endColumn: number,
     public text: string,
-    public children: (BranchNode | LeafNode)[] | undefined,
-    parent?: RootNode | BranchNode | undefined,
+    public children?: (BranchNode | LeafNode)[],
+    parent?: RootNode | BranchNode,
   ) {
     super(parent);
     this.tag = tag;
@@ -36,21 +36,25 @@ export class BranchNode extends Node {
   private iterFind(targetObj: BranchNode[] | BranchNode, filter: string): BranchNode[] {
     let indexOf: BranchNode[] = [];
     if (!Array.isArray(targetObj)) {
-      if (Object.values(targetObj).indexOf(filter) !== -1) {
+      const perfectMatch = Object.values(targetObj).some((obj) => (
+        typeof obj !== 'object' && obj === filter
+      ));
+      if (perfectMatch) {
+      // if (Object.values(targetObj).indexOf(filter) !== -1) {
         indexOf.push(targetObj);
       }
-    } else {
-      const values = Object.values(targetObj);
-      const objs = values.reduce((founds: BranchNode[], targetValue: string | BranchNode) => {
-        if (typeof targetValue === 'object') {
-          if (targetValue !== null) {
-            return this.iterFind(targetValue, filter);
-          }
-        }
-        return founds;
-      }, []);
-      indexOf = indexOf.concat(objs);
     }
+    const values = Object.values(targetObj);
+    const objs = values.reduce((founds: BranchNode[], targetValue: string | BranchNode) => {
+      if (typeof targetValue === 'object') {
+        if (targetValue !== null) {
+          return founds.concat(this.iterFind(targetValue, filter));
+        }
+      }
+      return founds;
+    }, []);
+    indexOf = indexOf.concat(objs);
+
     return indexOf;
   }
 
@@ -61,6 +65,11 @@ export class BranchNode extends Node {
         indexOf = indexOf.concat(this.iterFind(this.children as BranchNode[], f));
       }
     });
+
+    if (indexOf.length === 0) {
+      indexOf.push(new BranchNode('', 0, 0, 0, 0, ''));
+    }
+
     return indexOf;
   }
 
