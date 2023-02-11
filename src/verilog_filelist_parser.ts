@@ -14,6 +14,9 @@ args.forEach((arg) => console.log('  ', arg.find({ tag: ['identifier'] }).text))
 console.log('preprocessorIdentifier:');
 args.forEach((arg) => console.log('  ', arg.find({ tag: ['preprocessorIdentifier'] }).text));
 
+const fileArgs = converted.iterFindAll({ tag: ['kFileDeclaration'] });
+fileArgs.forEach((arg) => console.log('  ', arg.find({ tag: ['identifier'] }).text));
+
 // console.log('-D macro'.trim(), '=', define);
 
 // const res = new ParserAndLexer.TsCalcParser().parse('-f run.f');

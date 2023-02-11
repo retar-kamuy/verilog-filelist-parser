@@ -34,3 +34,13 @@ tsc mygenerator.ts
 ```ps
 node mygenerator.js
 ```
+
+# Mochaの構築方法
+```ps
+npm install chai mocha ts-node @types/chai @types/mocha --save-dev
+```
+
+* テスト実行コマンド
+```ps
+npm test -- -w
+```
