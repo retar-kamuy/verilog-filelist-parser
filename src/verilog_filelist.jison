@@ -175,7 +175,7 @@ macro_argument
             text: $1,
           }, {
             tag: 'kMacroDeclarationList',
-            children: [$3],
+            children: $3,
           },
         ],
       };
@@ -186,14 +186,14 @@ macro_declaration
   : identifier
     {
       $$ = {
-        tag: 'kMacroDeclaration',
+        tag: 'kMacroDefine',
         children: [$1],
       };
     }
   | identifier '=' identifier
     {
       $$ = {
-        tag: 'kMacroDeclaration',
+        tag: 'kMacroExpression',
         children: [$1, $3],
       };
     }
@@ -202,11 +202,22 @@ macro_declaration
 macro_declaration_list
   : macro_declaration
     {
-      $$ = [$1];
+      $$ = [
+        {
+          tag: 'kMacroDeclaration',
+          children: [$1],
+        }
+      ];
     }
   | macro_declaration '+' macro_declaration_list
     {
-      $$ = [$1, ...$3];
+      $$ = [
+        {
+          tag: 'kMacroDeclaration',
+          children: [$1],
+        },
+        ...$3,
+      ];
     }
   ;
 
@@ -252,7 +263,7 @@ identifier
   | preprocessor_identifier identifierItem
     {
       $$ = {
-        tag: 'preprocessorIdentifier',
+        tag: 'identifier',
         children: [$1, $2],
         text: $1.children[0].text + $2.text,
       };
@@ -325,13 +336,14 @@ string_literal
 string_variable
   : STRING
     {
+      const varEnv = $1
       $$ = {
         tag: 'variableIdentifier',
         line: _$[_$.length - 1].first_line,
         endLine: _$[_$.length - 1].last_line,
         column: _$[_$.length - 1].first_column,
         endColumn: _$[_$.length - 1].last_column,
-        text: $1,
+        text: process.env[varEnv],
       };
     }
   ;

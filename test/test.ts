@@ -1,45 +1,34 @@
 import { describe, it } from 'mocha';
-import { assert, expect } from 'chai';
+import { expect } from 'chai';
 import * as ParserAndLexer from '../src/verilog_filelist';
 import { transformTree } from '../src/anyTree';
 
 describe('simplest test:', () => {
-  it('test of kPositonalArgument, because it expects "src/test"', () => {
-    const define = new ParserAndLexer.TsCalcParser().parse(
-      '--lint-only -D macro -D macro=value +define+macro1+macro2 -f run.f src/test $(SRC)/test',
-    );
+  const define = new ParserAndLexer.TsCalcParser().parse(
+    '--lint-only -D macro -D macro1=value +define+macro2+macro3 -f run.f src/test $(OS)/test',
+  );
+  const converted = transformTree(define);
 
-    const converted = transformTree(define);
+  it('test of kPositonalArgument, "src/test"', () => {
     const args = converted.iterFindAll({ tag: ['kPositionalArgument'] });
-
-    const identifiers: string[] = [];
-    args.forEach((arg) => identifiers.push(arg.find({ tag: ['identifier'] }).text));
-    expect(identifiers[0]).to.equal('src/test');
+    expect(args[0].find({ tag: ['identifier'] }).text).to.equal('src/test');
   });
 
-  it('test of kPositonalArgument, because preprocessorIdentifier expects "SRC/test"', () => {
-    const define = new ParserAndLexer.TsCalcParser().parse(
-      '--lint-only -D macro -D macro=value +define+macro1+macro2 -f run.f src/test $(SRC)/test',
-    );
-
-    const converted = transformTree(define);
+  it('test of kPositonalArgument, env "$(OS) = Windows_NT"', () => {
     const args = converted.iterFindAll({ tag: ['kPositionalArgument'] });
-
-    const preprocessors: string[] = [];
-    args.forEach((arg) => preprocessors.push(arg.find({ tag: ['preprocessorIdentifier'] }).text));
-    expect(preprocessors[1]).to.equal('SRC/test');
+    expect(args[1].find({ tag: ['identifier'] }).text).to.equal('Windows_NT/test');
   });
 
-  it('test of kFileDeclaration, because identifier expects "run.f"', () => {
-    const define = new ParserAndLexer.TsCalcParser().parse(
-      '--lint-only -D macro -D macro=value +define+macro1+macro2 -f run.f src/test $(SRC)/test',
-    );
-
-    const converted = transformTree(define);
+  it('test of kFileDeclaration, "run.f"', () => {
     const args = converted.iterFindAll({ tag: ['kFileDeclaration'] });
+    expect(args[0].find({ tag: ['identifier'] }).text).to.equal('run.f');
+  });
 
-    const identifiers: string[] = [];
-    args.forEach((arg) => identifiers.push(arg.find({ tag: ['identifier'] }).text));
-    expect(identifiers[0]).to.equal('run.f');
+  it('test of kFileDeclaration, "-D macro -D macro1=value +define+macro2+macro3"', () => {
+    const args = converted.iterFindAll({ tag: ['kMacroDeclaration'] });
+    expect(args[0].find({ tag: ['identifier'] }).text).to.equal('macro');
+    expect(args[1].find({ tag: ['identifier'] }).text).to.equal('macro1=value');
+    expect(args[0].find({ tag: ['identifier'] }).text).to.equal('macro2');
+    expect(args[1].find({ tag: ['identifier'] }).text).to.equal('macro3');
   });
 });
