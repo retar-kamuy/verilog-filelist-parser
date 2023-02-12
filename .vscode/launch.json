@@ -16,6 +16,20 @@
                 "${workspaceFolder}/**/*.js"
             ],
             "preLaunchTask": "tsc: build - tsconfig.json",
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Mocha Test",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "args": [
+                "-colors",
+                "--require",
+                "ts-node/register",
+                "--watch-extensions",
+                "ts",
+                "test/*.ts"
+            ]
         }
     ]
 }
